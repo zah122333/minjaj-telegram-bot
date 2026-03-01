@@ -15,7 +15,7 @@ def get_today_dates():
     hijri = Hijriah(day=today_greg.day, month=today_greg.month, year=today_greg.year)
     hijri_date = hijri.to_hijri()
 
-    return f"التاريخ 📅: {gregorian_date} م / {hijri_date} هـ"
+    return f"التاريخ 📅:\n {gregorian_date} م / {hijri_date} هـ"
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -70,6 +70,7 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 
 app.run_polling()
+
 
 
 
