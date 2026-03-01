@@ -64,9 +64,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # هنا نستخدم ApplicationBuilder بدل Updater
-app = ApplicationBuilder().token("8682386038:AAFvTc88hKRAgWIpC1rZi95pK9iQaJ62Xhk").build()
+app = ApplicationBuilder().token("8682386038:AAHBQqHU_x1OwPRrwR6SpYGyJqCfiopIUB4").build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 
 app.run_polling()
+
