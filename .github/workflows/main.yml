@@ -20,4 +20,4 @@ jobs:
           pip install python-telegram-bot hijri-calendar
       - name: Run bot
         run: |
-          python bot.py
+          python bot/bot.py
