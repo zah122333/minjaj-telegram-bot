@@ -20,10 +20,10 @@ def get_today_dates():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("سجل اسمي قارئة", callback_data="reader")],
-        [InlineKeyboardButton("سجل اسمي مستمعة", callback_data="listener")],
-        [InlineKeyboardButton("سجل اسمي معتذرة", callback_data="excused")],
-        [InlineKeyboardButton("احذف اسمي", callback_data="remove")]
+        [InlineKeyboardButton("سجل اسمي قارئة🎤", callback_data="reader")],
+        [InlineKeyboardButton("سجل اسمي مستمعة🎧", callback_data="listener")],
+        [InlineKeyboardButton("سجل اسمي معتذرة✖️", callback_data="excused")],
+        [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(format_lists(), reply_markup=reply_markup)
@@ -70,6 +70,7 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 
 app.run_polling()
+
 
 
 
