@@ -1,0 +1,23 @@
+name: Run Telegram Bot
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 * * * *'  # يشغل كل ساعة (يمكن تعديل الوقت)
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install python-telegram-bot hijri-calendar
+      - name: Run bot
+        run: |
+          python bot.py
