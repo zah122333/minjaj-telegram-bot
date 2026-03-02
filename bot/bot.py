@@ -32,9 +32,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def format_lists():
     return (
             f"{get_today_dates()}\n\n"
-            f"📖 القارئات:\n" + "\n".join(readers) + "\n\n"
-            f"👂 المستمعات:\n" + "\n".join(listeners) + "\n\n"
-            f"❌ المعتذرات:\n" + "\n".join(excused) + "\n\n"
+            f"القارئات📖 :\n" + "\n".join(readers) + "\n\n"
+            f"المستمعات👂 :\n" + "\n".join(listeners) + "\n\n"
+            f"المعتذرات❌ :\n" + "\n".join(excused) + "\n\n"
     )
 
 
@@ -70,6 +70,7 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 
 app.run_polling()
+
 
 
 
