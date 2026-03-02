@@ -19,9 +19,9 @@ def get_today_dates():
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global readers, listeners, excused  # ضروري عشان نقدر نغيرهم داخل الدالة
+    global readers, listeners, excused 
 
-    # افرغي القوائم القديمة
+  
     readers = []
     listeners = []
     excused = []
@@ -38,12 +38,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def format_lists():
+ 
+    def numbered(lst):
+        return "\n".join(f"{i+1}. {name}" for i, name in enumerate(lst)) if lst else "- لا يوجد"
+
     return (
-            f"{get_today_dates()}\n\n"
-            f"القارئات🎤 :\n" + "\n".join(readers) + "\n\n"
-            f"المستمعات👂 :\n" + "\n".join(listeners) + "\n\n"
-            f"المعتذرات✖️ :\n" + "\n".join(excused) + "\n\n"
-            f"عن أمير المؤمنين علي بن أبي طالب (صلوات الله وسلامه عليه):\n"
+        f"{get_today_dates()}\n\n"
+        f"القارئات🎤 :\n" + numbered(readers) + "\n\n"
+        f"المستمعات👂 :\n" + numbered(listeners) + "\n\n"
+        f"المعتذرات✖️ :\n" + numbered(excused) + "\n\n"
+        f"عن أمير المؤمنين علي بن أبي طالب (صلوات الله وسلامه عليه):\n"
         "وَأَمَّا مَا فَرَضَهُ عَلَى الأذنين: فَالإِستِمَاعُ إِلَى ذِكْرِ الله تَعَالَى وَالإِنصَاتُ لِمَا يُتْلَى مِنْ كِتَابِهِ، وَتَرْكُ الإصْغَاءِ لِمَا يُسْخِطُهُ، فَقَالَ سُبْحَانَهُ: "
         "وَإِذَا قُرِئَ الْقُرْآنُ فَاسْتَمِعُوا لَهُ وَأَنْصِتُوا لَعَلَّكُمْ تُرْحَمُونَ.\n"
         "— بحار الأنوار، ج90، ص49"
@@ -75,24 +79,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(text=format_lists(), reply_markup=query.message.reply_markup)
 
 
-# هنا نستخدم ApplicationBuilder بدل Updater
+
 app = ApplicationBuilder().token("8682386038:AAHBQqHU_x1OwPRrwR6SpYGyJqCfiopIUB4").build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 
 app.run_polling()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
