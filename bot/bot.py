@@ -36,7 +36,7 @@ def format_lists():
         f"القارئات🎤 :\n" + numbered(readers) + "\n\n"
         f"المستمعات👂 :\n" + numbered(listeners) + "\n\n"
         f"المعتذرات✖️ :\n" + numbered(excused) + "\n\n"
-        "-----------------------------"
+        "-----------------------------\n"
         f"عن أمير المؤمنين علي بن أبي طالب (صلوات الله وسلامه عليه):\n"
         "وَأَمَّا مَا فَرَضَهُ عَلَى الأذنين: فَالإِستِمَاعُ إِلَى ذِكْرِ الله تَعَالَى وَالإِنصَاتُ لِمَا يُتْلَى مِنْ كِتَابِهِ، وَتَرْكُ الإصْغَاءِ لِمَا يُسْخِطُهُ، فَقَالَ سُبْحَانَهُ: "
         "وَإِذَا قُرِئَ الْقُرْآنُ فَاسْتَمِعُوا لَهُ وَأَنْصِتُوا لَعَلَّكُمْ تُرْحَمُونَ.\n"
@@ -68,4 +68,5 @@ app = ApplicationBuilder().token("8682386038:AAHBQqHU_x1OwPRrwR6SpYGyJqCfiopIUB4
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 app.run_polling()
+
 
