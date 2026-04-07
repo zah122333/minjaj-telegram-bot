@@ -1,9 +1,13 @@
+import asyncio
+import os
+from datetime import datetime
+
+# Updated library for Hijri dates
+from hijridate import Hijri
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
-from datetime import datetime
-from hijridate import Hijri
-import os
 
+# Data storage (Note: These reset if the bot restarts on Render)
 readers = []
 listeners = []
 excused = []
@@ -12,6 +16,7 @@ def get_today_dates():
     today_greg = datetime.today()
     gregorian_date = today_greg.strftime("%d/%m/%Y")
 
+    # Compatibility with hijridate
     hijri = Hijri.from_gregorian(
         today_greg.year,
         today_greg.month,
@@ -25,6 +30,7 @@ def get_today_dates():
 def numbered(lst):
     if not lst:
         return "—"
+    # Using set to avoid duplicate names if needed, or keeping as list
     return "\n".join(f"{i+1}. {name}" for i, name in enumerate(lst))
 
 def format_lists():
@@ -35,11 +41,12 @@ def format_lists():
         f"المعتذرات✖️ :\n{numbered(excused)}\n\n"
         "-----------------------------\n"
         "عن أمير المؤمنين علي بن أبي طالب (عليه السلام):\n"
-        "وَأَمَّا مَا فَرَضَهُ عَلَى الأذنين: فَالإِستِمَاعُ إِلَى ذِكْرِ الله...\n"
+        "وَأَمَّا مَا فَرَضَهُ عَلَى الأذنين: فَالإِستِمَاعُ إِلَى ذِكْرِ الله...\n"
         "— بحار الأنوار، ج90، ص49"
     )
 
 def move_user(user, target):
+    # Remove user from all lists first to avoid duplicates
     if user in readers:
         readers.remove(user)
     if user in listeners:
@@ -47,6 +54,7 @@ def move_user(user, target):
     if user in excused:
         excused.remove(user)
 
+    # Add to the new target list
     if target == "reader":
         readers.append(user)
     elif target == "listener":
@@ -83,14 +91,34 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
     ]
 
-    await query.edit_message_text(
-        text=format_lists(),
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    # Use a try-except here because if the text is exactly the same, 
+    # Telegram throws an error saying "Message is not modified"
+    try:
+        await query.edit_message_text(
+            text=format_lists(),
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    except Exception:
+        pass
 
-app = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
+if __name__ == "__main__":
+    # 1. Initialize the Application
+    token = os.environ.get("BOT_TOKEN")
+    if not token:
+        print("Error: BOT_TOKEN environment variable not found.")
+    else:
+        app = ApplicationBuilder().token(token).build()
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(button))
+        # 2. Add Handlers
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(CallbackQueryHandler(button))
 
-app.run_polling()
+        # 3. FIX: Handle the event loop manually for Python 3.14 stability
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        print("Bot is starting...")
+        app.run_polling()
