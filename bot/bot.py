@@ -2,6 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 from datetime import datetime
 from hijri.core import Hijriah
+import os
 
 readers = []
 listeners = []
@@ -14,59 +15,75 @@ def get_today_dates():
     hijri_date = hijri.to_hijri()
     return f"التاريخ 📅:\n {gregorian_date} م / {hijri_date} هـ"
 
+def numbered(lst):
+    if not lst:
+        return "—"
+    return "\n".join(f"{i+1}. {name}" for i, name in enumerate(lst))
+
+def format_lists():
+    return (
+        f"{get_today_dates()}\n\n"
+        f"القارئات🎤 :\n{numbered(readers)}\n\n"
+        f"المستمعات👂 :\n{numbered(listeners)}\n\n"
+        f"المعتذرات✖️ :\n{numbered(excused)}\n\n"
+        "-----------------------------\n"
+        "عن أمير المؤمنين علي بن أبي طالب (عليه السلام):\n"
+        "وَأَمَّا مَا فَرَضَهُ عَلَى الأذنين: فَالإِستِمَاعُ إِلَى ذِكْرِ الله...\n"
+        "— بحار الأنوار، ج90، ص49"
+    )
+
+def move_user(user, target):
+    if user in readers:
+        readers.remove(user)
+    if user in listeners:
+        listeners.remove(user)
+    if user in excused:
+        excused.remove(user)
+
+    if target == "reader":
+        readers.append(user)
+    elif target == "listener":
+        listeners.append(user)
+    elif target == "excused":
+        excused.append(user)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global readers, listeners, excused
-    readers = []
-    listeners = []
-    excused = []
     keyboard = [
         [InlineKeyboardButton("سجل اسمي قارئة🎤", callback_data="reader")],
         [InlineKeyboardButton("سجل اسمي مستمعة👂", callback_data="listener")],
         [InlineKeyboardButton("سجل اسمي معتذرة✖️", callback_data="excused")],
         [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(format_lists(), reply_markup=reply_markup)
-
-def format_lists():
-    def numbered(lst):
-        return "\n".join(f"{i+1}. {name}" for i, name in enumerate(lst))
-    return (
-        f"{get_today_dates()}\n\n"
-        f"القارئات🎤 :\n" + numbered(readers) + "\n\n"
-        f"المستمعات👂 :\n" + numbered(listeners) + "\n\n"
-        f"المعتذرات✖️ :\n" + numbered(excused) + "\n\n"
-        "-----------------------------\n"
-        f"عن أمير المؤمنين علي بن أبي طالب (صلوات الله وسلامه عليه):\n"
-        "وَأَمَّا مَا فَرَضَهُ عَلَى الأذنين: فَالإِستِمَاعُ إِلَى ذِكْرِ الله تَعَالَى وَالإِنصَاتُ لِمَا يُتْلَى مِنْ كِتَابِهِ، وَتَرْكُ الإصْغَاءِ لِمَا يُسْخِطُهُ، فَقَالَ سُبْحَانَهُ: "
-        "وَإِذَا قُرِئَ الْقُرْآنُ فَاسْتَمِعُوا لَهُ وَأَنْصِتُوا لَعَلَّكُمْ تُرْحَمُونَ.\n"
-        "— بحار الأنوار، ج90، ص49"
+    await update.message.reply_text(
+        format_lists(),
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
-def move_user_to_list(user, target_list):
-    if user in readers: readers.remove(user)
-    if user in listeners: listeners.remove(user)
-    if user in excused: excused.remove(user)
-    if target_list == "reader":
-        readers.append(user)
-    elif target_list == "listener":
-        listeners.append(user)
-    elif target_list == "excused":
-        excused.append(user)
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user = query.from_user.full_name
     await query.answer()
-    if query.data in ['reader', 'listener', 'excused']:
-        move_user_to_list(user, query.data)
-    elif query.data == 'remove':
-        move_user_to_list(user, None)
-    await query.edit_message_text(text=format_lists(), reply_markup=query.message.reply_markup)
 
-app = ApplicationBuilder().token("8682386038:AAHBQqHU_x1OwPRrwR6SpYGyJqCfiopIUB4").build()
+    if query.data in ["reader", "listener", "excused"]:
+        move_user(user, query.data)
+    elif query.data == "remove":
+        move_user(user, None)
+
+    keyboard = [
+        [InlineKeyboardButton("سجل اسمي قارئة🎤", callback_data="reader")],
+        [InlineKeyboardButton("سجل اسمي مستمعة👂", callback_data="listener")],
+        [InlineKeyboardButton("سجل اسمي معتذرة✖️", callback_data="excused")],
+        [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
+    ]
+
+    await query.edit_message_text(
+        text=format_lists(),
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+app = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
+
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
+
 app.run_polling()
-
-
