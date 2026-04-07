@@ -11,8 +11,11 @@ excused = []
 def get_today_dates():
     today_greg = datetime.today()
     gregorian_date = today_greg.strftime("%d/%m/%Y")
-    hijri = Hijriah(day=today_greg.day, month=today_greg.month, year=today_greg.year)
-    hijri_date = hijri.to_hijri()
+    hijri_date = Hijri.from_gregorian(
+    today_greg.year,
+    today_greg.month,
+    today_greg.day
+).to_hijri_date()
     return f"التاريخ 📅:\n {gregorian_date} م / {hijri_date} هـ"
 
 def numbered(lst):
