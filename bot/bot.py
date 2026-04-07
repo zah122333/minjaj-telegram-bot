@@ -2,8 +2,8 @@ import asyncio
 import os
 from datetime import datetime
 
-# Updated library for Hijri dates
-from hijridate import Hijri
+# Updated import to use the Gregorian class for conversion
+from hijridate import Gregorian
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -13,15 +13,12 @@ listeners = []
 excused = []
 
 def get_today_dates():
+    # Get current Gregorian date
     today_greg = datetime.today()
     gregorian_date = today_greg.strftime("%d/%m/%Y")
 
-    # Compatibility with hijridate
-    hijri = Hijri.from_gregorian(
-        today_greg.year,
-        today_greg.month,
-        today_greg.day
-    )
+    # Use the Gregorian class to convert to Hijri (Fix for AttributeError)
+    hijri = Gregorian(today_greg.year, today_greg.month, today_greg.day).to_hijri()
 
     hijri_date = f"{hijri.day}/{hijri.month}/{hijri.year}"
 
@@ -30,7 +27,6 @@ def get_today_dates():
 def numbered(lst):
     if not lst:
         return "—"
-    # Using set to avoid duplicate names if needed, or keeping as list
     return "\n".join(f"{i+1}. {name}" for i, name in enumerate(lst))
 
 def format_lists():
@@ -91,14 +87,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
     ]
 
-    # Use a try-except here because if the text is exactly the same, 
-    # Telegram throws an error saying "Message is not modified"
     try:
         await query.edit_message_text(
             text=format_lists(),
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
     except Exception:
+        # Ignore errors if the message content hasn't changed
         pass
 
 if __name__ == "__main__":
@@ -113,7 +108,7 @@ if __name__ == "__main__":
         app.add_handler(CommandHandler("start", start))
         app.add_handler(CallbackQueryHandler(button))
 
-        # 3. FIX: Handle the event loop manually for Python 3.14 stability
+        # 3. Handle the event loop manually for Python 3.14 stability
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
