@@ -1,37 +1,31 @@
 import asyncio
 import os
 from datetime import datetime
-
-# Updated import to use the Gregorian class for conversion
 from hijridate import Gregorian
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# Data storage (Note: These reset if the bot restarts on Render)
+# Data storage
 readers = []
 listeners = []
 excused = []
+registration_open = True 
 
 def get_today_dates():
-    # Get current Gregorian date
     today_greg = datetime.today()
     gregorian_date = today_greg.strftime("%d/%m/%Y")
-
-    # Use the Gregorian class to convert to Hijri (Fix for AttributeError)
     hijri = Gregorian(today_greg.year, today_greg.month, today_greg.day).to_hijri()
-
     hijri_date = f"{hijri.day}/{hijri.month}/{hijri.year}"
-
     return f"التاريخ 📅:\n {gregorian_date} م / {hijri_date} هـ"
     
 def numbered(lst):
-    if not lst:
-        return "—"
+    if not lst: return "—"
     return "\n".join(f"{i+1}. {name}" for i, name in enumerate(lst))
 
 def format_lists():
+    status_msg = "" if registration_open else "⚠️ التسجيل مغلق حالياً ⚠️\n\n"
     return (
-        f"{get_today_dates()}\n\n"
+        f"{status_msg}{get_today_dates()}\n\n"
         f"القارئات🎤 :\n{numbered(readers)}\n\n"
         f"المستمعات👂 :\n{numbered(listeners)}\n\n"
         f"المعتذرات✖️ :\n{numbered(excused)}\n\n"
@@ -41,79 +35,86 @@ def format_lists():
         "— بحار الأنوار، ج90، ص49"
     )
 
-def move_user(user, target):
-    # Remove user from all lists first to avoid duplicates
-    if user in readers:
-        readers.remove(user)
-    if user in listeners:
-        listeners.remove(user)
-    if user in excused:
-        excused.remove(user)
-
-    # Add to the new target list
-    if target == "reader":
-        readers.append(user)
-    elif target == "listener":
-        listeners.append(user)
-    elif target == "excused":
-        excused.append(user)
+def get_keyboard():
+    """Generates the keyboard based on whether registration is open."""
+    if registration_open:
+        return InlineKeyboardMarkup([
+            [InlineKeyboardButton("سجل اسمي قارئة🎤", callback_data="reader")],
+            [InlineKeyboardButton("سجل اسمي مستمعة👂", callback_data="listener")],
+            [InlineKeyboardButton("سجل اسمي معتذرة✖️", callback_data="excused")],
+            [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
+        ])
+    else:
+        # Only show the remove button when closed
+        return InlineKeyboardMarkup([
+            [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
+        ])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("سجل اسمي قارئة🎤", callback_data="reader")],
-        [InlineKeyboardButton("سجل اسمي مستمعة👂", callback_data="listener")],
-        [InlineKeyboardButton("سجل اسمي معتذرة✖️", callback_data="excused")],
-        [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
-    ]
     await update.message.reply_text(
-        format_lists(),
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        format_lists(), 
+        reply_markup=get_keyboard()
     )
+
+async def clear_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global readers, listeners, excused
+    readers.clear()
+    listeners.clear()
+    excused.clear()
+    await update.message.reply_text("✅ تم مسح القائمة بالكامل.")
+
+async def toggle_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global registration_open
+    registration_open = not registration_open
+    status = "مفتوح ✅" if registration_open else "مغلق ❌"
+    await update.message.reply_text(f"حالة التسجيل الآن: {status}")
+    
+    # Optional: You can send a fresh list message showing the new state
+    await update.message.reply_text(format_lists(), reply_markup=get_keyboard())
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user = query.from_user.full_name
-    await query.answer()
-
-    if query.data in ["reader", "listener", "excused"]:
-        move_user(user, query.data)
-    elif query.data == "remove":
+    
+    # Logic for button presses
+    if query.data == "remove":
         move_user(user, None)
-
-    keyboard = [
-        [InlineKeyboardButton("سجل اسمي قارئة🎤", callback_data="reader")],
-        [InlineKeyboardButton("سجل اسمي مستمعة👂", callback_data="listener")],
-        [InlineKeyboardButton("سجل اسمي معتذرة✖️", callback_data="excused")],
-        [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
-    ]
+        await query.answer("تم حذف اسمك.")
+    elif registration_open:
+        move_user(user, query.data)
+        await query.answer()
+    else:
+        await query.answer("عذراً، التسجيل مغلق حالياً ❌", show_alert=True)
+        return
 
     try:
         await query.edit_message_text(
-            text=format_lists(),
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            text=format_lists(), 
+            reply_markup=get_keyboard()
         )
     except Exception:
-        # Ignore errors if the message content hasn't changed
         pass
 
-if __name__ == "__main__":
-    # 1. Initialize the Application
-    token = os.environ.get("BOT_TOKEN")
-    if not token:
-        print("Error: BOT_TOKEN environment variable not found.")
-    else:
-        app = ApplicationBuilder().token(token).build()
+def move_user(user, target):
+    for lst in [readers, listeners, excused]:
+        if user in lst: lst.remove(user)
+    if target == "reader": readers.append(user)
+    elif target == "listener": listeners.append(user)
+    elif target == "excused": excused.append(user)
 
-        # 2. Add Handlers
+if __name__ == "__main__":
+    token = os.environ.get("BOT_TOKEN")
+    if token:
+        app = ApplicationBuilder().token(token).build()
         app.add_handler(CommandHandler("start", start))
+        app.add_handler(CommandHandler("clear", clear_list))
+        app.add_handler(CommandHandler("stop", toggle_registration))
         app.add_handler(CallbackQueryHandler(button))
 
-        # 3. Handle the event loop manually for Python 3.14 stability
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        print("Bot is starting...")
         app.run_polling()
