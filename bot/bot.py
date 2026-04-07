@@ -52,13 +52,15 @@ def get_keyboard():
             [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
         ])
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def send_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /send and /start commands."""
     await update.message.reply_text(
         format_lists(), 
         reply_markup=get_keyboard()
     )
 
 async def clear_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /clear command."""
     global readers, listeners, excused
     readers.clear()
     listeners.clear()
@@ -66,13 +68,14 @@ async def clear_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ تم مسح القائمة بالكامل.")
 
 async def toggle_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /status command."""
     global registration_open
     registration_open = not registration_open
     
     status_text = "مفتوح ✅" if registration_open else "مغلق ❌"
     await update.message.reply_text(f"حالة التسجيل الآن: {status_text}")
     
-    # Send an updated list immediately so users see the buttons change
+    # Send an updated list immediately
     await update.message.reply_text(
         format_lists(), 
         reply_markup=get_keyboard()
@@ -89,7 +92,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         move_user(user, query.data)
         await query.answer()
     else:
-        # If someone clicks a registration button while closed
         await query.answer("عذراً، انتهى وقت التسجيل ❌", show_alert=True)
         try:
             await query.edit_message_text(text=format_lists(), reply_markup=get_keyboard())
@@ -118,10 +120,11 @@ if __name__ == "__main__":
     if token:
         app = ApplicationBuilder().token(token).build()
         
-        # Commands
-        app.add_handler(CommandHandler("start", start))
+        # Commands updated to match your BotFather list
+        app.add_handler(CommandHandler("start", send_list))   # Kept for safety
+        app.add_handler(CommandHandler("send", send_list))    # New command
         app.add_handler(CommandHandler("clear", clear_list))
-        app.add_handler(CommandHandler("stop", toggle_registration))
+        app.add_handler(CommandHandler("status", toggle_registration)) # New command
         
         # Button interactions
         app.add_handler(CallbackQueryHandler(button))
