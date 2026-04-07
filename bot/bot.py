@@ -5,6 +5,11 @@ from hijridate import Gregorian
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
+# --- CONFIGURATION ---
+# Replace 'YOUR_TELEGRAM_ID' with your actual numerical ID (e.g., 12345678)
+# You can find your ID by messaging @userinfobot on Telegram
+ADMIN_ID = 123456789 
+
 # Data storage
 readers = []
 listeners = []
@@ -23,6 +28,7 @@ def numbered(lst):
     return "\n".join(f"{i+1}. {name}" for i, name in enumerate(lst))
 
 def format_lists():
+    # We call the global variable directly inside here
     status_msg = "" if registration_open else " ❕انتهى التسجيل في هذه القائمة\n\n"
     return (
         "قائمة الأدوار: \n\n"
@@ -37,7 +43,7 @@ def format_lists():
     )
 
 def get_keyboard():
-    """Generates the keyboard based on whether registration is open."""
+    """Generates the keyboard based on the current registration state."""
     if registration_open:
         return InlineKeyboardMarkup([
             [InlineKeyboardButton("سجل اسمي قارئة🎤", callback_data="reader")],
@@ -46,7 +52,6 @@ def get_keyboard():
             [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
         ])
     else:
-        # Only show the remove button when closed
         return InlineKeyboardMarkup([
             [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
         ])
@@ -58,26 +63,37 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def clear_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Admin Check
+    if update.effective_user.id != ADMIN_ID:
+        return
+
     global readers, listeners, excused
     readers.clear()
     listeners.clear()
     excused.clear()
-    await update.message.reply_text("✅ تم مسح القائمة القديمة.")
+    await update.message.reply_text("✅ تم مسح القائمة.")
 
 async def toggle_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Admin Check
+    if update.effective_user.id != ADMIN_ID:
+        return
+
     global registration_open
     registration_open = not registration_open
-    status = "مفتوح ✅" if registration_open else "مغلق ❌"
-    await update.message.reply_text(f"حالة التسجيل الآن: {status}")
     
-    # Optional: You can send a fresh list message showing the new state
-    await update.message.reply_text(format_lists(), reply_markup=get_keyboard())
+    status_text = "مفتوح ✅" if registration_open else "مغلق ❌"
+    await update.message.reply_text(f"حالة التسجيل الآن: {status_text}")
+    
+    # Send a fresh list so everyone sees the new buttons immediately
+    await update.message.reply_text(
+        format_lists(), 
+        reply_markup=get_keyboard()
+    )
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user = query.from_user.full_name
     
-    # Logic for button presses
     if query.data == "remove":
         move_user(user, None)
         await query.answer("تم حذف اسمك.")
@@ -85,7 +101,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         move_user(user, query.data)
         await query.answer()
     else:
+        # If someone clicks an old button while closed
         await query.answer("عذراً، انتهى وقت التسجيل ❌", show_alert=True)
+        # Update the message to remove the buttons they just tried to click
+        try:
+            await query.edit_message_text(text=format_lists(), reply_markup=get_keyboard())
+        except:
+            pass
         return
 
     try:
@@ -98,7 +120,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def move_user(user, target):
     for lst in [readers, listeners, excused]:
-        if user in lst: lst.remove(user)
+        if user in lst: 
+            lst.remove(user)
     if target == "reader": readers.append(user)
     elif target == "listener": listeners.append(user)
     elif target == "excused": excused.append(user)
@@ -107,6 +130,7 @@ if __name__ == "__main__":
     token = os.environ.get("BOT_TOKEN")
     if token:
         app = ApplicationBuilder().token(token).build()
+        
         app.add_handler(CommandHandler("start", start))
         app.add_handler(CommandHandler("clear", clear_list))
         app.add_handler(CommandHandler("stop", toggle_registration))
