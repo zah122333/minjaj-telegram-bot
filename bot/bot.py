@@ -62,7 +62,7 @@ async def clear_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     readers.clear()
     listeners.clear()
     excused.clear()
-    await update.message.reply_text("✅ تم مسح القائمة بالكامل.")
+    await update.message.reply_text("✅ تم مسح القائمة القديمة.")
 
 async def toggle_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registration_open
