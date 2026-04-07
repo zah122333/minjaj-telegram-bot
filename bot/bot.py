@@ -23,9 +23,9 @@ def numbered(lst):
     return "\n".join(f"{i+1}. {name}" for i, name in enumerate(lst))
 
 def format_lists():
-    status_msg = "" if registration_open else "انتهى التسجيل\n القائمة النهائية: \n\n"
+    status_msg = "" if registration_open else " ❕انتهى التسجيل في هذه القائمة\n\n"
     return (
-        "التسجيل في قائمة الأدوار: \n\n"
+        "قائمة الأدوار: \n\n"
         f"{status_msg}{get_today_dates()}\n\n"
         f"القارئات🎤 :\n{numbered(readers)}\n\n"
         f"المستمعات👂 :\n{numbered(listeners)}\n\n"
