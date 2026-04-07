@@ -25,6 +25,7 @@ def numbered(lst):
 def format_lists():
     status_msg = "" if registration_open else "⚠️ التسجيل مغلق حالياً ⚠️\n\n"
     return (
+        "التسجيل في قائمة الأدوار: \n\n"
         f"{status_msg}{get_today_dates()}\n\n"
         f"القارئات🎤 :\n{numbered(readers)}\n\n"
         f"المستمعات👂 :\n{numbered(listeners)}\n\n"
@@ -84,7 +85,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         move_user(user, query.data)
         await query.answer()
     else:
-        await query.answer("عذراً، التسجيل مغلق حالياً ❌", show_alert=True)
+        await query.answer("عذراً، انتهى وقت التسجيل ❌", show_alert=True)
         return
 
     try:
