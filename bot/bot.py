@@ -23,7 +23,7 @@ def numbered(lst):
     return "\n".join(f"{i+1}. {name}" for i, name in enumerate(lst))
 
 def format_lists():
-    status_msg = "" if registration_open else "⚠️ التسجيل مغلق حالياً ⚠️\n\n"
+    status_msg = "" if registration_open else "انتهى التسجيل\n القائمة النهائية: \n\n"
     return (
         "التسجيل في قائمة الأدوار: \n\n"
         f"{status_msg}{get_today_dates()}\n\n"
