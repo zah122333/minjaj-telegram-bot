@@ -5,11 +5,6 @@ from hijridate import Gregorian
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# --- CONFIGURATION ---
-# Replace 'YOUR_TELEGRAM_ID' with your actual numerical ID (e.g., 12345678)
-# You can find your ID by messaging @userinfobot on Telegram
-ADMIN_ID = 123456789 
-
 # Data storage
 readers = []
 listeners = []
@@ -19,6 +14,7 @@ registration_open = True
 def get_today_dates():
     today_greg = datetime.today()
     gregorian_date = today_greg.strftime("%d/%m/%Y")
+    # Convert to Hijri using the Gregorian class
     hijri = Gregorian(today_greg.year, today_greg.month, today_greg.day).to_hijri()
     hijri_date = f"{hijri.day}/{hijri.month}/{hijri.year}"
     return f"التاريخ 📅:\n {gregorian_date} م / {hijri_date} هـ"
@@ -28,7 +24,6 @@ def numbered(lst):
     return "\n".join(f"{i+1}. {name}" for i, name in enumerate(lst))
 
 def format_lists():
-    # We call the global variable directly inside here
     status_msg = "" if registration_open else " ❕انتهى التسجيل في هذه القائمة\n\n"
     return (
         "قائمة الأدوار: \n\n"
@@ -43,7 +38,7 @@ def format_lists():
     )
 
 def get_keyboard():
-    """Generates the keyboard based on the current registration state."""
+    """Generates the keyboard based on current registration state."""
     if registration_open:
         return InlineKeyboardMarkup([
             [InlineKeyboardButton("سجل اسمي قارئة🎤", callback_data="reader")],
@@ -52,6 +47,7 @@ def get_keyboard():
             [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
         ])
     else:
+        # Show only 'Remove' button when closed
         return InlineKeyboardMarkup([
             [InlineKeyboardButton("احذف اسمي❌", callback_data="remove")]
         ])
@@ -63,28 +59,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def clear_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Admin Check
-    if update.effective_user.id != ADMIN_ID:
-        return
-
     global readers, listeners, excused
     readers.clear()
     listeners.clear()
     excused.clear()
-    await update.message.reply_text("✅ تم مسح القائمة.")
+    await update.message.reply_text("✅ تم مسح القائمة بالكامل.")
 
 async def toggle_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Admin Check
-    if update.effective_user.id != ADMIN_ID:
-        return
-
     global registration_open
     registration_open = not registration_open
     
     status_text = "مفتوح ✅" if registration_open else "مغلق ❌"
     await update.message.reply_text(f"حالة التسجيل الآن: {status_text}")
     
-    # Send a fresh list so everyone sees the new buttons immediately
+    # Send an updated list immediately so users see the buttons change
     await update.message.reply_text(
         format_lists(), 
         reply_markup=get_keyboard()
@@ -101,9 +89,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         move_user(user, query.data)
         await query.answer()
     else:
-        # If someone clicks an old button while closed
+        # If someone clicks a registration button while closed
         await query.answer("عذراً، انتهى وقت التسجيل ❌", show_alert=True)
-        # Update the message to remove the buttons they just tried to click
         try:
             await query.edit_message_text(text=format_lists(), reply_markup=get_keyboard())
         except:
@@ -131,15 +118,20 @@ if __name__ == "__main__":
     if token:
         app = ApplicationBuilder().token(token).build()
         
+        # Commands
         app.add_handler(CommandHandler("start", start))
         app.add_handler(CommandHandler("clear", clear_list))
         app.add_handler(CommandHandler("stop", toggle_registration))
+        
+        # Button interactions
         app.add_handler(CallbackQueryHandler(button))
 
+        # Event loop fix for Python 3.14 on Render
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
+        print("Bot is starting...")
         app.run_polling()
